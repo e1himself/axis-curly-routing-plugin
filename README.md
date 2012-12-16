@@ -272,17 +272,22 @@ will output:
 /say/foohellobar
 ```
 
-On the other hand by navigating to that url you will receive transformed variables in your controller:
+On the other hand by navigating to that url (`/say/foohellobar`) the route will fetch `weird_word`
+ variable with the value set to `foohellobar`. Than it will be passed through data all your
+ route's defined transformers and you'll get the transformed variables in your request and controller:
+
 ```php
 class weirdActions extends sfActions
 {
   public function executeSay($request)
   {
-    $this->renderText($request['word']);
+    $this->renderText($request['word']); // this will output 'hello'
   }
 }
 ```
 
 You can do a lot of cool stuff using custom transformers without the need to implement custom routes.
 By the way, `CurlyObjectRoute` uses transformers to handle object requests. Look at that class to
-find more about params transformers.
+find more about params transformers. You can chain them and reuse already implemented code.
+
+Sounds fantastic isn't it?
