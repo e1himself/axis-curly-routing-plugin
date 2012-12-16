@@ -14,9 +14,14 @@ class CurlyRouteUrlGenerator implements RouteUrlGeneratorInterface
    */
   protected $generator;
 
+  /**
+   * @var \Axis\S1\CurlyRouting\RequestContext
+   */
+  protected $context;
+
   public function __construct()
   {
-    // empty constructor
+    $this->context = new \Axis\S1\CurlyRouting\RequestContext();
   }
 
   /**
@@ -25,7 +30,11 @@ class CurlyRouteUrlGenerator implements RouteUrlGeneratorInterface
   public function generate($route, $parameters, $absolute, $context)
   {
     $generator = $this->getSymfonyGenerator();
-    $generator->setContext($context);
+
+    $this->context->fromRequestContext($context);
+    $this->context->setBaseUrl('');
+
+    $generator->setContext($this->context);
 
     $defaults = array_merge($route->getDefaultParameters(), $route->getDefaults());
     return $generator->doGenerate(

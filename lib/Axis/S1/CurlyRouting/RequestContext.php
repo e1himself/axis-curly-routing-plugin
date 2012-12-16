@@ -27,6 +27,20 @@ class RequestContext extends \Symfony\Component\Routing\RequestContext implement
   }
 
   /**
+   * @param \Symfony\Component\Routing\RequestContext $context
+   */
+  public function fromRequestContext($context)
+  {
+    $this->setBaseUrl($context->getBaseUrl());
+    $this->setHost($context->getHost());
+    $this->setScheme($context->getScheme());
+    $this->setHttpPort($context->getHttpPort());
+    $this->setHttpsPort($context->getHttpsPort());
+    $this->setMethod($context->getMethod());
+    $this->setParameters($context->getParameters());
+  }
+
+  /**
    * @param mixed $offset
    * @return boolean true on success or false on failure.
    */

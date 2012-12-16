@@ -18,13 +18,9 @@ use Symfony\Component\Routing\Route;
 class CurlyRoute extends \sfRoute implements CurlyRouteInterface
 {
   /**
-   * @var array|Generator\RouteUrlGeneratorInterface[]
+   * @var array|object[]
    */
-  protected static $generators = array();
-  /**
-   * @var array|Matcher\RouteUrlMatcherInterface[]
-   */
-  protected static $matchers = array();
+  protected static $classInstances = array();
 
   /**
    * Constructor.
@@ -47,10 +43,12 @@ class CurlyRoute extends \sfRoute implements CurlyRouteInterface
   public function initializeOptions()
   {
     $this->options = array_merge(array(
-      'compiler_class' => '\Symfony\Component\Routing\RouteCompiler',
+      'compiler_class' => '\Axis\S1\CurlyRouting\Compiler\CurlyRouteCompiler',
       'generator_class' => '\Axis\S1\CurlyRouting\Generator\CurlyRouteUrlGenerator',
       'matcher_class' => '\Axis\S1\CurlyRouting\Matcher\CurlyRouteUrlMatcher'
     ), $this->options);
+
+    $this->fixTransformersConfig($this->options);
   }
 
   /**
@@ -63,10 +61,7 @@ class CurlyRoute extends \sfRoute implements CurlyRouteInterface
       if (!is_object($this->compiled))
       {
         $this->compiled = new \Symfony\Component\Routing\CompiledRoute(
-          $this->staticPrefix,
-          $this->regex,
-          $this->tokens,
-          $this->variables
+          $this->staticPrefix, $this->regex, $this->tokens, $this->variables
         );
       }
       return $this->compiled;
@@ -76,12 +71,7 @@ class CurlyRoute extends \sfRoute implements CurlyRouteInterface
     $this->fixRequirements();
     $this->fixDefaults();
 
-    $proxy = new Route(
-      $this->pattern,
-      $this->defaults,
-      $this->requirements,
-      $this->options
-    );
+    $proxy = new Route($this->pattern, $this->defaults, $this->requirements, $this->options);
 
     $this->compiled = $compiledRoute = $proxy->compile();
 
@@ -106,8 +96,122 @@ class CurlyRoute extends \sfRoute implements CurlyRouteInterface
       $this->compile();
     }
 
+    $params = $this->transformForUrl($params);
+
     $generator = $this->getUrlGenerator();
     return $generator->generate($this, $params, $absolute, $this->getContext($context));
+  }
+
+  /**
+   * @param string $name
+   * @param mixed $default
+   * @return mixed
+   */
+  public function getParameter($name, $default = null)
+  {
+    return isset($this->parameters[$name]) ? $this->parameters[$name] : $default;
+  }
+
+  public function bind($context, $parameters)
+  {
+    $parameters = $this->transformForController($parameters);
+    parent::bind($context, $parameters);
+  }
+
+  /**
+   * @param string $url
+   * @param array|RequestContext $context
+   * @return array|bool
+   */
+  function matchesUrl($url, $context = array())
+  {
+    return $this->getUrlMatcher()->matches($this, $url, $this->getContext($context));
+  }
+
+//  // Assume that sfRoute::matchesParameters() is able to handle this
+//  function matchesParameters($params, $context = array())
+//  {
+//  }
+
+  /**
+   * @param string $name
+   * @return string
+   */
+  public function getRequirement($name)
+  {
+    return isset($this->requirements[$name]) ? $this->requirements[$name] : null;
+  }
+
+  /**
+   * @param array $options
+   * @throws \LogicException
+   */
+  protected function fixTransformersConfig(& $options)
+  {
+    if (isset($options['transform']))
+    {
+      if (!is_array($options['transform']) || isset($options['transform']['class']))
+      {
+        $options['transform'] = array($options['transform']);
+      }
+      foreach($options['transform'] as $key => $transformer)
+      {
+        if (is_array($transformer))
+        {
+          if (!isset($transformer['class']))
+          {
+            throw new \LogicException('You should declare "class" option for data transformer.');
+          }
+          $class = $transformer['class'];
+          unset($transformer['class']);
+          $config = $transformer;
+        }
+        else
+        {
+          $class = $transformer;
+          $config = array();
+        }
+        if (is_string($key))
+        {
+          $config['_name'] = $key;
+        }
+        $options['transform'][$key] = array('class' => $class, 'options' => $config);
+      }
+    }
+    else
+    {
+      $options['transform'] = array();
+    }
+  }
+
+  /**
+   * @param array $params
+   * @return array
+   */
+  protected function transformForUrl($params)
+  {
+    foreach ($this->options['transform'] as $config)
+    {
+      /** @var $transformer \Axis\S1\CurlyRouting\Transformer\DataTransformerInterface */
+      $transformer = $this->getClassInstance($config['class']);
+      $params = $transformer->transformForUrl($params, $this->variables, $config['options']);
+    }
+    return $params;
+  }
+
+  /**
+   * @param array $params
+   * @return array
+   */
+  protected function transformForController($params)
+  {
+    foreach ($this->options['transform'] as $config)
+    {
+      /** @var $transformer \Axis\S1\CurlyRouting\Transformer\DataTransformerInterface */
+      $transformer = $this->getClassInstance($config['class']);
+      $params = $transformer->transformForController($params, $this->variables, $config['options']);
+    }
+    return $params;
   }
 
   /**
@@ -128,16 +232,24 @@ class CurlyRoute extends \sfRoute implements CurlyRouteInterface
   }
 
   /**
+   * @param string $class
+   * @return object
+   */
+  protected function getClassInstance($class)
+  {
+    if (!isset(self::$classInstances[$class]))
+    {
+      self::$classInstances[$class] = new $class();
+    }
+    return self::$classInstances[$class];
+  }
+
+  /**
    * @return Generator\RouteUrlGeneratorInterface
    */
   protected function getUrlGenerator()
   {
-    $class = $this->options['generator_class'];
-    if (!isset(self::$generators[$class]))
-    {
-      self::$generators[$class] = new $class();
-    }
-    return self::$generators[$class];
+    return $this->getClassInstance($this->options['generator_class']);
   }
 
   /**
@@ -145,36 +257,6 @@ class CurlyRoute extends \sfRoute implements CurlyRouteInterface
    */
   protected function getUrlMatcher()
   {
-    $class = $this->options['matcher_class'];
-    if (!isset(self::$matchers[$class]))
-    {
-      self::$matchers[$class] = new $class();
-    }
-    return self::$matchers[$class];
-  }
-
-  /**
-   * @param string $url
-   * @param array|RequestContext $context
-   * @return array|bool
-   */
-  function matchesUrl($url, $context = array())
-  {
-    return $this->getUrlMatcher()->matches($this, $url, $this->getContext($context));
-  }
-
-//  // hope sfRoute::matchesParameters is able to handle this
-//  function matchesParameters($params, $context = array())
-//  {
-//    // TODO: Implement matchesParameters() method.
-//  }
-
-  /**
-   * @param string $name
-   * @return string
-   */
-  public function getRequirement($name)
-  {
-    return isset($this->requirements[$name]) ? $this->requirements[$name] : null;
+    return $this->getClassInstance($this->options['matcher_class']);
   }
 }

@@ -1,0 +1,38 @@
+{
+  "name": "axis/axis-curly-routing-plugin",
+  "description": "This plugin introduces to symfony 1.x a new route class that uses curly braces in pattern just like Symfony2 routes",
+
+  "type": "symfony1-plugin",
+  "extra": {
+    "installer-name": "AxisCurlyRoutingPlugin"
+  },
+
+  "keywords": ["symfony", "routing", "plugin"],
+  "license": "MIT",
+  "homepage": "https://github.com/e1himself/axis-curly-routing-plugin",
+
+  "authors": [
+    {
+      "name": "Ivan Voskoboynyk",
+      "email": "ioann.voskoboynyk@gmail.com",
+      "homepage": "https://github.com/e1himself"
+    }
+  ],
+  "version": "0.1.0",
+
+  "autoload": {
+    "psr-0": {
+      "Axis\\S1\\CurlyRouting": "lib/"
+    }
+  },
+
+  "require": {
+    "php": ">=5.3.0",
+    "composer/installers": "*",
+    "symfony/routing": "2.1.x-dev"
+  },
+
+  "suggest": {
+    "propel/sf-propel-o-r-m-plugin": "Allows you to use CurlyObjectRoute - route that automatically fetches object from DB corresponding to request parameters"
+  }
+}

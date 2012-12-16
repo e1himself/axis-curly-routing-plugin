@@ -18,10 +18,9 @@ class CurlyRouteUrlMatcher implements RouteUrlMatcherInterface
    * @param RequestContext $context
    * @return bool
    */
-  function matches($route, $pathinfo, $context)
+  public function matches($route, $pathinfo, $context)
   {
     $compiledRoute = $route->compile();
-    $requirements = $route->getRequirements();
 
     // check the static prefix of the URL first. Only use the more expensive preg_match when it matches
     if ('' !== $compiledRoute->getStaticPrefix() && 0 !== strpos($pathinfo, $compiledRoute->getStaticPrefix())) {
@@ -55,10 +54,12 @@ class CurlyRouteUrlMatcher implements RouteUrlMatcherInterface
       return false;
     }
 
-    return $this->mergeDefaults($matches, array_merge(
+    $params =  $this->mergeDefaults($matches, array_merge(
       $route->getDefaultParameters(),
       $route->getDefaults()
     ));
+
+    return $this->fixDottedVariables($params, $route->getVariables());
   }
 
   /**
@@ -96,5 +97,20 @@ class CurlyRouteUrlMatcher implements RouteUrlMatcherInterface
     }
 
     return $defaults;
+  }
+
+  protected function fixDottedVariables($params, $variables)
+  {
+    $fixed = array();
+    foreach ($variables as $var)
+    {
+      $var_fixed = str_replace('.', '_', $var);
+      if (array_key_exists($var_fixed, $params))
+      {
+        $fixed[$var] = $params[$var_fixed];
+        unset($params[$var_fixed]);
+      }
+    }
+    return array_merge($fixed, $params);
   }
 }
