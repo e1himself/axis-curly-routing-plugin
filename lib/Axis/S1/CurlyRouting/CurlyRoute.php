@@ -114,7 +114,14 @@ class CurlyRoute extends \sfRoute implements CurlyRouteInterface
 
   public function bind($context, $parameters)
   {
-    $parameters = $this->transformForController($parameters);
+    foreach ($this->options['transform'] as $config)
+    {
+      $transformer = $this->getClassInstance($config['class']);
+      if ($transformer instanceof \Axis\S1\CurlyRouting\Transformer\BindableDataTransformerInterface)
+      {
+        $parameters = $transformer->bind($parameters, $this->variables, $config['options']);
+      }
+    }
     parent::bind($context, $parameters);
   }
 
@@ -125,7 +132,8 @@ class CurlyRoute extends \sfRoute implements CurlyRouteInterface
    */
   function matchesUrl($url, $context = array())
   {
-    return $this->getUrlMatcher()->matches($this, $url, $this->getContext($context));
+    $params = $this->getUrlMatcher()->matches($this, $url, $this->getContext($context));
+    return $params ? $this->transformForController($params) : $params;
   }
 
 //  // Assume that sfRoute::matchesParameters() is able to handle this

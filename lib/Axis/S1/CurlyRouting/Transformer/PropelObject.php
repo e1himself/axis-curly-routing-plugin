@@ -7,7 +7,7 @@
 
 namespace Axis\S1\CurlyRouting\Transformer;
 
-class PropelObject extends Namespaced implements DataTransformerInterface
+class PropelObject extends Namespaced implements BindableDataTransformerInterface
 {
   protected function fixOptions($options)
   {
@@ -76,12 +76,37 @@ class PropelObject extends Namespaced implements DataTransformerInterface
   }
 
   /**
+   * Explodes route parameters
+   * @param array $params
+   * @param array $variables
+   * @param array $options
+   * @return array
+   */
+  public function transformForController($params, $variables, $options = array())
+  {
+    $options = $this->fixOptions($options);
+    if (!empty($options['namespace']))
+    {
+      $namespace = $options['namespace'];
+      if (isset($params[$namespace]) && is_array($params[$namespace]))
+      {
+        $params[$namespace] = $this->explodeParameters($params[$namespace]);
+      }
+      return $params;
+    }
+    else
+    {
+      return $this->explodeParameters($params);
+    }
+  }
+
+  /**
    * @param array $params
    * @param array $variables
    * @param array $options
    * @return array Converted parameters
    */
-  public function transformForController($params, $variables, $options = array())
+  public function bind($params, $variables, $options = array())
   {
     // check if namespace is specified
     $options = $this->fixOptions($options);
