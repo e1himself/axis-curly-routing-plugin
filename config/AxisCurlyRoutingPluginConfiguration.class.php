@@ -8,14 +8,20 @@ class AxisCurlyRoutingPluginConfiguration extends sfPluginConfiguration
 {
   public function configure()
   {
-//    $loader = new \Symfony\Component\ClassLoader\DebugUniversalClassLoader();
-//    $loader->registerNamespace('Axis\\S1\\CurlyRouting', __DIR__.'/../lib');
-//    $loader->register();
-
     if (sfConfig::get('sf_curly_routing_register_class_aliases', true))
     {
-      class_alias('\Axis\S1\CurlyRouting\CurlyRoute', 'CurlyRoute');
-      class_alias('\Axis\S1\CurlyRouting\CurlyObjectRoute', 'CurlyObjectRoute');
+      $map = array(
+        'CurlyRoute' => '\Axis\S1\CurlyRouting\CurlyRoute',
+        'CurlyObjectRoute' => '\Axis\S1\CurlyRouting\CurlyObjectRoute'
+      );
+
+      foreach ($map as $alias => $fqcn)
+      {
+        if (!class_exists($alias, false))
+        {
+          class_alias($fqcn, $alias);
+        }
+      }
     }
 
     parent::configure();
