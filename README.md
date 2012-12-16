@@ -273,8 +273,8 @@ will output:
 ```
 
 On the other hand by navigating to that url (`/say/foohellobar`) the route will fetch `weird_word`
- variable with the value set to `foohellobar`. Than it will be passed through data all your
- route's defined transformers and you'll get the transformed variables in your request and controller:
+ variable with the value set to `foohellobar`. Than it will be passed through all your
+ route's defined data transformers and you'll get the transformed variables in your request and controller:
 
 ```php
 class weirdActions extends sfActions
