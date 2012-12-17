@@ -35,7 +35,7 @@ For generating URLs:
 <?php echo url_for('curly_route', array('name' => 'world')) ?>
 ```
 
-For routing URLs to controller:
+For routing requests to controller:
 ```
 class testActions extends sfActions
 {
