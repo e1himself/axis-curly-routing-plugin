@@ -35,7 +35,7 @@ For generating URLs:
 <?php echo url_for('curly_route', array('name' => 'world')) ?>
 ```
 
-For routing URLs to controller:
+For routing requests to controller:
 ```
 class testActions extends sfActions
 {
@@ -117,6 +117,11 @@ And you can use this like you did with `sfPropelRoute`. For generating URLs:
 
 ```php
 <?php echo url_for('blog_post', $post) ?>
+
+or
+
+<?php echo url_for('blog_post', array('id' => $post->getId(), 'slug' => $post->getSlug())) ?>
+
 ```
 
 and for retrieving object from controller:
@@ -155,6 +160,24 @@ And usage. For generating URLs:
 
 ```php
 <?php echo url_for('blog_post', array('post' => $post, 'username' => 'anonymous')) ?>
+
+or 
+
+<?php echo url_for('blog_post', array(
+    'post.id' => $post->getId(),
+    'post.slug' => $post->getSlug(),
+    'username' => 'anonymous'
+  )) ?>
+
+or
+
+<?php echo url_for('blog_post', array(
+    'post' => array(
+        'id' => $post->getId(),
+        'slug' => $post->getSlug()
+    ),
+    'username' => 'anonymous'
+  )) ?>
 ```
 
 and for retrieving object from controller:
@@ -273,8 +296,8 @@ will output:
 ```
 
 On the other hand by navigating to that url (`/say/foohellobar`) the route will fetch `weird_word`
- variable with the value set to `foohellobar`. Than it will be passed through data all your
- route's defined transformers and you'll get the transformed variables in your request and controller:
+ variable with the value set to `foohellobar`. Than it will be passed through all your
+ route's defined data transformers and you'll get the transformed variables in your request and controller:
 
 ```php
 class weirdActions extends sfActions
