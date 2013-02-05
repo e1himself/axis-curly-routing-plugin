@@ -38,7 +38,7 @@ class CurlyRouteUrlGenerator implements RouteUrlGeneratorInterface
 
     $defaults = array_merge($route->getDefaultParameters(), $route->getDefaults());
     return $generator->doGenerate(
-      $route->getVariables(),
+      array_keys($route->getVariables()),
       $defaults,
       $route->getRequirements(),
       $route->compile()->getTokens(),

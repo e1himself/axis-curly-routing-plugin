@@ -78,7 +78,7 @@ class CurlyRoute extends \sfRoute implements CurlyRouteInterface
     $this->regex = $compiledRoute->getRegex();
     $this->staticPrefix = $compiledRoute->getStaticPrefix();
     $this->tokens = $compiledRoute->getTokens();
-    $this->variables =  $compiledRoute->getVariables();
+    $this->variables = $compiledRoute->getVariables();
 
     return $compiledRoute;
   }
@@ -110,6 +110,20 @@ class CurlyRoute extends \sfRoute implements CurlyRouteInterface
   public function getParameter($name, $default = null)
   {
     return isset($this->parameters[$name]) ? $this->parameters[$name] : $default;
+  }
+
+  /**
+   * Tweak variables array to match sfRoute format (var_name => var_pattern)
+   *
+   * @return array
+   */
+  public function getVariables()
+  {
+    $varNames = $this->compile()->getVariables();
+    $varPatterns = array_map(function($v) { return "{{$v}}"; }, $varNames);
+
+    $vars = count($varNames) ? array_combine($varNames, $varPatterns) : array();
+    return $vars;
   }
 
   public function bind($context, $parameters)
