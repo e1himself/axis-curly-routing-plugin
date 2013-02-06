@@ -111,10 +111,14 @@ class CurlyRouteCompiler implements RouteCompilerInterface
       // Variable tokens
       if (0 === $index && 0 === $firstOptional) {
         // When the only token is an optional variable token, the separator is required
-        return sprintf('%s(?P<%s>%s)?', preg_quote($token[1], self::REGEX_DELIMITER), str_replace('.', '_', $token[3]), $token[2]);
+        // NOTE: str_replace is needed to support namespaced variables. @see CurlyRouteMatcher::fixDottedVariables()
+        return sprintf('%s(?P<%s>%s)?', preg_quote($token[1], self::REGEX_DELIMITER), str_replace('.', '__', $token[3]), $token[2]);
       } else {
-        $regexp = sprintf('%s(?P<%s>%s)', preg_quote($token[1], self::REGEX_DELIMITER), str_replace('.', '_', $token[3]), $token[2]);
-        if ($index >= $firstOptional) {
+        // NOTE: str_replace is needed to support namespaced variables. @see CurlyRouteMatcher::fixDottedVariables()
+        $regexp = sprintf('%s(?P<%s>%s)', preg_quote($token[1], self::REGEX_DELIMITER), str_replace('.', '__', $token[3]), $token[2]);
+
+        if ($index >= $firstOptional)
+        {
           // Enclose each optional token in a subpattern to make it optional.
           // "?:" means it is non-capturing, i.e. the portion of the subject string that
           // matched the optional subpattern is not passed back.

@@ -102,9 +102,9 @@ class CurlyRouteUrlMatcher implements RouteUrlMatcherInterface
   protected function fixDottedVariables($params, $variables)
   {
     $fixed = array();
-    foreach ($variables as $var)
+    foreach ($variables as $var => $pattern)
     {
-      $var_fixed = str_replace('.', '_', $var);
+      $var_fixed = str_replace('.', '__', $var);
       if (array_key_exists($var_fixed, $params))
       {
         $fixed[$var] = $params[$var_fixed];

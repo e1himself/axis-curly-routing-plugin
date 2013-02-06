@@ -119,15 +119,14 @@ class PropelObject extends Namespaced implements BindableDataTransformerInterfac
         $variables = $this->filterNamespacedVariables($variables, $namespace);
         $object = $this->getQuery($params[$namespace], $variables, $options)->findOne();
         $params[$namespace]['sf_subject'] = $object;
-        return $params;
       }
     }
     else
     {
       $object = $this->getQuery($params, $variables, $options)->findOne();
       $params['sf_subject'] = $object;
-      return $params;
     }
+    return $params;
   }
 
   /**
