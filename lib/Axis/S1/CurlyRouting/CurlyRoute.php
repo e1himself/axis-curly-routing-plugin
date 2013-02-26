@@ -46,7 +46,7 @@ class CurlyRoute extends \sfRoute implements CurlyRouteInterface
       'compiler_class' => '\Axis\S1\CurlyRouting\Compiler\CurlyRouteCompiler',
       'generator_class' => '\Axis\S1\CurlyRouting\Generator\CurlyRouteUrlGenerator',
       'matcher_class' => '\Axis\S1\CurlyRouting\Matcher\CurlyRouteUrlMatcher'
-    ), $this->options);
+    ), $this->getDefaultOptions(), $this->options);
 
     $this->fixTransformersConfig($this->options);
   }
