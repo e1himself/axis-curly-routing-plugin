@@ -31,20 +31,26 @@ class CurlyRouteUrlMatcher implements RouteUrlMatcherInterface
       return false;
     }
 
+    $hostMatches = array();
+    if ($compiledRoute->getHostRegex() && !preg_match($compiledRoute->getHostRegex(), $context->getHost(), $hostMatches)) {
+      return false;
+    }
+
     // check HTTP method requirement
-    if ($req = $route->getRequirement('sf_method')) {
+    if ($req = $route->getRequirement('_method')) {
       // HEAD and GET are equivalent as per RFC
       if ('HEAD' === $method = $context->getMethod()) {
         $method = 'GET';
       }
 
       if (!in_array($method, $req = explode('|', strtoupper($req)))) {
+        // $this->allow = array_merge($this->allow, $req);
         // TODO: Consider about Method Not Allowed Error reporting
         return false;
       }
     }
 
-    $status = $this->handleRouteRequirements($route, $pathinfo, $context);
+    $status = $this->handleRouteRequirements($pathinfo, $context, $route);
 
     if (UrlMatcher::ROUTE_MATCH === $status[0]) {
       return $status[1];
@@ -54,7 +60,24 @@ class CurlyRouteUrlMatcher implements RouteUrlMatcherInterface
       return false;
     }
 
-    $params =  $this->mergeDefaults($matches, array_merge(
+    return $this->getAttributes($route, array_replace($matches, $hostMatches));
+  }
+
+  /**
+   * Returns an array of values to use as request attributes.
+   *
+   * As this method requires the Route object, it is not available
+   * in matchers that do not have access to the matched Route instance
+   * (like the PHP and Apache matcher dumpers).
+   *
+   * @param \Axis\S1\CurlyRouting\CurlyRouteInterface  $route      The route we are matching against
+   * @param array  $attributes An array of attributes from the matcher
+   *
+   * @return array An array of parameters
+   */
+  protected function getAttributes($route, $attributes)
+  {
+    $params =  $this->mergeDefaults($attributes, array_merge(
       $route->getDefaultParameters(),
       $route->getDefaults()
     ));
@@ -65,16 +88,16 @@ class CurlyRouteUrlMatcher implements RouteUrlMatcherInterface
   /**
    * Handles specific route requirements.
    *
-   * @param \Axis\S1\CurlyRouting\CurlyRouteInterface $route The route
    * @param string $pathinfo The path
-   * @param RequestContext $context
+   * @param \Axis\S1\CurlyRouting\RequestContext $context
+   * @param \Axis\S1\CurlyRouting\CurlyRouteInterface  $route    The route
    *
    * @return array The first element represents the status, the second contains additional information
    */
-  protected function handleRouteRequirements($route, $pathinfo, $context)
+  protected function handleRouteRequirements($pathinfo, $context, $route)
   {
     // check HTTP scheme requirement
-    $scheme = $route->getRequirement('sf_scheme');
+    $scheme = $route->getRequirement('_scheme');
     $status = $scheme && $scheme !== $context->getScheme() ? UrlMatcher::REQUIREMENT_MISMATCH : UrlMatcher::REQUIREMENT_MATCH;
 
     return array($status, null);

@@ -23,6 +23,23 @@ class CurlyRoute extends \sfRoute implements CurlyRouteInterface
   protected static $classInstances = array();
 
   /**
+   * @var array
+   */
+  protected $pathVariables;
+  /**
+   * @var string
+   */
+  protected $hostRegex;
+  /**
+   * @var array
+   */
+  protected $hostVariables;
+  /**
+   * @var array
+   */
+  protected $hostTokens;
+
+  /**
    * Constructor.
    *
    * Available options:
@@ -61,7 +78,14 @@ class CurlyRoute extends \sfRoute implements CurlyRouteInterface
       if (!is_object($this->compiled))
       {
         $this->compiled = new \Symfony\Component\Routing\CompiledRoute(
-          $this->staticPrefix, $this->regex, $this->tokens, $this->variables
+          $this->staticPrefix,
+          $this->regex,
+          $this->tokens,
+          $this->pathVariables,
+          $this->hostRegex,
+          $this->hostTokens,
+          $this->hostVariables,
+          array_keys($this->variables)
         );
       }
       return $this->compiled;
@@ -71,14 +95,30 @@ class CurlyRoute extends \sfRoute implements CurlyRouteInterface
     $this->fixRequirements();
     $this->fixDefaults();
 
-    $proxy = new Route($this->pattern, $this->defaults, $this->requirements, $this->options);
+    $proxy = new Route(
+      $this->pattern,
+      $this->defaults,
+      $this->requirements,
+      $this->options,
+      // NOTE: dependency to sfConfigHandler is bad
+      //       but how we can use hostname wildcards without replacing sfRoutingConfigHandler?
+      //       sfRoutingConfigHandler does not replaces this common constants syntax
+      isset($this->requirements['_host']) ? \sfConfigHandler::replaceConstants($this->requirements['_host']) : '',
+      isset($this->requirements['_schema']) ? explode('|', $this->requirements['_schema']) : array()
+    );
 
     $this->compiled = $compiledRoute = $proxy->compile();
 
     $this->regex = $compiledRoute->getRegex();
     $this->staticPrefix = $compiledRoute->getStaticPrefix();
     $this->tokens = $compiledRoute->getTokens();
-    $this->variables = $compiledRoute->getVariables();
+    $this->pathVariables = $compiledRoute->getPathVariables();
+
+    $this->hostRegex = $compiledRoute->getHostRegex();
+    $this->hostTokens = $compiledRoute->getHostTokens();
+    $this->hostVariables = $compiledRoute->getHostVariables();
+
+    $this->variables = $this->fixVariables($compiledRoute->getVariables());
 
     return $compiledRoute;
   }
@@ -113,17 +153,13 @@ class CurlyRoute extends \sfRoute implements CurlyRouteInterface
   }
 
   /**
-   * Tweak variables array to match sfRoute format (var_name => var_pattern)
+   * Tweak variables array to match sfRoute format (var_name => var_key)
    *
    * @return array
    */
   public function getVariables()
   {
-    $varNames = $this->compile()->getVariables();
-    $varPatterns = array_map(function($v) { return "{{$v}}"; }, $varNames);
-
-    $vars = count($varNames) ? array_combine($varNames, $varPatterns) : array();
-    return $vars;
+    return $this->variables;
   }
 
   public function bind($context, $parameters)
@@ -133,7 +169,7 @@ class CurlyRoute extends \sfRoute implements CurlyRouteInterface
       $transformer = $this->getClassInstance($config['class']);
       if ($transformer instanceof \Axis\S1\CurlyRouting\Transformer\BindableDataTransformerInterface)
       {
-        $parameters = $transformer->bind($parameters, $this->variables, $config['options']);
+        $parameters = $transformer->bind($parameters, array_keys($this->variables), $config['options']);
       }
     }
     parent::bind($context, $parameters);
@@ -162,6 +198,25 @@ class CurlyRoute extends \sfRoute implements CurlyRouteInterface
   public function getRequirement($name)
   {
     return isset($this->requirements[$name]) ? $this->requirements[$name] : null;
+  }
+
+  protected function fixRequirements()
+  {
+    parent::fixRequirements();
+    foreach ($this->requirements as $key => $regex)
+    {
+      if (is_array($regex))
+      {
+        $this->requirements[$key] = implode('|',$regex);
+      }
+    }
+  }
+
+  protected function fixVariables($varNames)
+  {
+    $varPatterns = array_map(function($v) { return "{{$v}}"; }, $varNames);
+
+    return count($varNames) ? array_combine($varNames, $varPatterns) : array();
   }
 
   /**
@@ -216,7 +271,7 @@ class CurlyRoute extends \sfRoute implements CurlyRouteInterface
     {
       /** @var $transformer \Axis\S1\CurlyRouting\Transformer\DataTransformerInterface */
       $transformer = $this->getClassInstance($config['class']);
-      $params = $transformer->transformForUrl($params, $this->variables, $config['options']);
+      $params = $transformer->transformForUrl($params, array_keys($this->variables), $config['options']);
     }
     return $params;
   }
@@ -231,7 +286,7 @@ class CurlyRoute extends \sfRoute implements CurlyRouteInterface
     {
       /** @var $transformer \Axis\S1\CurlyRouting\Transformer\DataTransformerInterface */
       $transformer = $this->getClassInstance($config['class']);
-      $params = $transformer->transformForController($params, $this->variables, $config['options']);
+      $params = $transformer->transformForController($params, array_keys($this->variables), $config['options']);
     }
     return $params;
   }
@@ -280,5 +335,25 @@ class CurlyRoute extends \sfRoute implements CurlyRouteInterface
   protected function getUrlMatcher()
   {
     return $this->getClassInstance($this->options['matcher_class']);
+  }
+
+  public function serialize()
+  {
+    // always serialize compiled routes
+    $this->compile();
+    // sfPatternRouting will always re-set defaultParameters, so no need to serialize them
+    return serialize(array($this->tokens, $this->defaultOptions, $this->options,
+      $this->pattern, $this->staticPrefix, $this->regex,
+      $this->variables, $this->defaults, $this->requirements, $this->suffix, $this->customToken,
+      $this->pathVariables, $this->hostRegex, $this->hostTokens, $this->hostVariables));
+  }
+
+  public function unserialize($data)
+  {
+    list($this->tokens, $this->defaultOptions, $this->options,
+      $this->pattern, $this->staticPrefix, $this->regex,
+      $this->variables, $this->defaults, $this->requirements, $this->suffix, $this->customToken,
+      $this->pathVariables, $this->hostRegex, $this->hostTokens, $this->hostVariables) = unserialize($data);
+    $this->compiled = true;
   }
 }
