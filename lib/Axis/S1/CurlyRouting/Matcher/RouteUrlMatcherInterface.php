@@ -14,7 +14,7 @@ interface RouteUrlMatcherInterface
    * @param \Axis\S1\CurlyRouting\CurlyRouteInterface $route
    * @param string $pathinfo
    * @param \Symfony\Component\Routing\RequestContext $context
-   * @return bool
+   * @return bool|array
    */
   function matches($route, $pathinfo, $context);
 }

@@ -16,7 +16,7 @@ class CurlyRouteUrlMatcher implements RouteUrlMatcherInterface
    * @param \Axis\S1\CurlyRouting\CurlyRouteInterface $route
    * @param string $pathinfo
    * @param RequestContext $context
-   * @return bool
+   * @return bool|array
    */
   public function matches($route, $pathinfo, $context)
   {
