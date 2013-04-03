@@ -14,6 +14,9 @@ class CurlyObjectRoute extends CurlyRoute implements CurlyObjectRouteInterface
 
   public function getObject($namespace = null)
   {
+
+    $this->bindDataTransformers($this->parameters);
+
     if (!$this->isBound())
     {
       throw new \LogicException('The route is not bound.');

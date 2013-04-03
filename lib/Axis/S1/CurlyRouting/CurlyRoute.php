@@ -40,6 +40,11 @@ class CurlyRoute extends \sfRoute implements CurlyRouteInterface
   protected $hostTokens;
 
   /**
+   * @var bool
+   */
+  protected $isTransformersBound = false;
+
+  /**
    * Constructor.
    *
    * Available options:
@@ -164,15 +169,24 @@ class CurlyRoute extends \sfRoute implements CurlyRouteInterface
 
   public function bind($context, $parameters)
   {
-    foreach ($this->options['transform'] as $config)
-    {
-      $transformer = $this->getClassInstance($config['class']);
-      if ($transformer instanceof \Axis\S1\CurlyRouting\Transformer\BindableDataTransformerInterface)
-      {
-        $parameters = $transformer->bind($parameters, array_keys($this->variables), $config['options']);
-      }
-    }
     parent::bind($context, $parameters);
+  }
+
+  public function bindDataTransformers($parameters)
+  {
+    if (!$this->isTransformersBound)
+    {
+      foreach ($this->options['transform'] as $config)
+      {
+        $transformer = $this->getClassInstance($config['class']);
+        if ($transformer instanceof \Axis\S1\CurlyRouting\Transformer\BindableDataTransformerInterface)
+        {
+          $parameters = $transformer->bind($parameters, array_keys($this->variables), $config['options']);
+        }
+      }
+        $this->isTransformersBound = true;
+    }
+    $this->parameters = $parameters; //as they might be updated in the loop
   }
 
   /**
