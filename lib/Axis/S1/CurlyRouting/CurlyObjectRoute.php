@@ -12,9 +12,51 @@ class CurlyObjectRoute extends CurlyRoute implements CurlyObjectRouteInterface
 
   protected $objects = array();
 
+  /**
+   * Flag to ensure that data transformers are bound only once
+   *
+   * @var bool
+   */
+  protected $areTransformersBound = false;
+
+  /**
+   * Bind data transformers
+   *
+   * @param $parameters
+   */
+  public function bindDataTransformers($parameters)
+  {
+    if (!$this->areTransformersBound)
+    {
+      foreach ($this->options['transform'] as $config)
+      {
+        $transformer = $this->getClassInstance($config['class']);
+        if ($transformer instanceof Transformer\BindableDataTransformerInterface)
+        {
+          $parameters = $transformer->bind($parameters, array_keys($this->variables), $config['options']);
+        }
+      }
+      $this->areTransformersBound = true;
+    }
+    $this->parameters = $parameters; //as they might be updated by transformers
+  }
+
+  /**
+   * @{@inheritDoc}
+   *
+   * @param array $context
+   * @param array $parameters
+   */
+  public function bind($context, $parameters)
+  {
+    // reset transformers binding if route was rebound
+    $this->areTransformersBound = false;
+    parent::bind($context, $parameters);
+  }
+
   public function getObject($namespace = null)
   {
-
+    // bind data transformers if needed
     $this->bindDataTransformers($this->parameters);
 
     if (!$this->isBound())
